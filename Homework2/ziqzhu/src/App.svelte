@@ -1,5 +1,7 @@
 <script lang="ts">
-  import BarChart from './components/BarChart.svelte'
+  import AreaChart from './components/AreaChart.svelte'
+  import HexbinChart from './components/HexbinChart.svelte'
+  import GenreBarChart from './components/GenreBarChart.svelte'
 </script>
 
 <main>
@@ -9,22 +11,16 @@
   </header>
 
   <div class="dashboard">
+    <section class="chart-section full-width">
+      <AreaChart />
+    </section>
+
     <section class="chart-section">
-      <BarChart />
+      <HexbinChart />
     </section>
 
-    <section class="chart-section placeholder">
-      <div class="placeholder-content">
-        <h3>Visualization 2</h3>
-        <p>Coming soon...</p>
-      </div>
-    </section>
-
-    <section class="chart-section placeholder">
-      <div class="placeholder-content">
-        <h3>Visualization 3</h3>
-        <p>Coming soon...</p>
-      </div>
+    <section class="chart-section">
+      <GenreBarChart />
     </section>
   </div>
 </main>
@@ -83,14 +79,14 @@
     margin-bottom: 10px;
   }
 
+  .full-width {
+    grid-column: 1 / -1;
+  }
+
   @media (min-width: 1200px) {
     .dashboard {
       grid-template-columns: 1fr 1fr;
       grid-template-rows: auto auto;
-    }
-
-    .chart-section:first-child {
-      grid-column: 1 / -1;
     }
   }
 </style>
