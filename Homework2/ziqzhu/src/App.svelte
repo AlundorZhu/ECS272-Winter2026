@@ -11,15 +11,18 @@
   </header>
 
   <div class="dashboard">
-    <section class="chart-section full-width">
+    <section class="chart-section">
+      <h2>Music Trends Over Time (2009-2025)</h2>
       <AreaChart />
     </section>
 
     <section class="chart-section">
+      <h2>Artist Fame vs Track Success</h2>
       <HexbinChart />
     </section>
 
     <section class="chart-section">
+      <h2>Explicit vs Clean Content by Genre</h2>
       <GenreBarChart />
     </section>
   </div>
@@ -50,43 +53,22 @@
   }
 
   .dashboard {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
   }
 
   .chart-section {
     background: white;
     border-radius: 8px;
-    padding: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   }
 
-  .placeholder {
-    min-height: 300px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #f5f5f5;
-    border: 2px dashed #ddd;
-  }
-
-  .placeholder-content {
-    text-align: center;
-    color: #999;
-  }
-
-  .placeholder-content h3 {
-    margin-bottom: 10px;
-  }
-
-  .full-width {
-    grid-column: 1 / -1;
-  }
-
-  @media (min-width: 1200px) {
-    .dashboard {
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: auto auto;
-    }
+  .chart-section h2 {
+    margin: 0 0 15px 0;
+    font-size: 1.5rem;
+    color: #333;
+    font-weight: 600;
   }
 </style>

@@ -32,9 +32,9 @@
     );
 
     // Set up dimensions
-    const margin = { top: 50, right: 120, bottom: 80, left: 90 };
-    const width = 600 - margin.left - margin.right;
-    const height = 500 - margin.top - margin.bottom;
+    const margin = { top: 20, right: 120, bottom: 90, left: 90 };
+    const width = 1100 - margin.left - margin.right;
+    const height = 520 - margin.top - margin.bottom;
 
     // Create SVG
     const svg = d3.select(chartContainer)
@@ -57,12 +57,12 @@
       .domain([0, 100])
       .range([height, 0]);
 
-    // Create hexbin generator
+    // Create hexbin generator with padding to avoid axis overlap
     const hexbinGenerator = hexbin<SpotifyData>()
       .x(d => xScale(d.artist_followers))
       .y(d => yScale(d.track_popularity))
       .radius(12)
-      .extent([[0, 0], [width, height]]);
+      .extent([[15, 15], [width - 15, height - 15]]);
 
     const bins = hexbinGenerator(validData);
 
@@ -132,7 +132,7 @@
 
     svg.append('g')
       .attr('class', 'x-axis')
-      .attr('transform', `translate(0,${height})`)
+      .attr('transform', `translate(0,${height + 20})`)
       .call(xAxis)
       .selectAll('text')
       .style('font-size', '11px');
@@ -143,19 +143,10 @@
       .selectAll('text')
       .style('font-size', '11px');
 
-    // Add chart title
-    svg.append('text')
-      .attr('x', width / 2)
-      .attr('y', -20)
-      .attr('text-anchor', 'middle')
-      .style('font-size', '16px')
-      .style('font-weight', 'bold')
-      .text('Artist Fame vs Track Success');
-
     // Add axis labels
     svg.append('text')
       .attr('x', width / 2)
-      .attr('y', height + 55)
+      .attr('y', height + 65)
       .attr('text-anchor', 'middle')
       .style('font-size', '13px')
       .text('Artist Followers (log scale)');

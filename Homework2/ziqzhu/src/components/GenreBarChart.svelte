@@ -13,31 +13,10 @@
 
   interface GenreStats {
     genre: string;
-    explicitPct: number;
-    avgDuration: number;
-    avgPopularity: number;
+    explicit: number;
+    clean: number;
     trackCount: number;
   }
-
-  interface BarData {
-    genre: string;
-    metric: string;
-    value: number;
-  }
-
-  const topGenres = ['pop', 'country', 'hip hop', 'rock', 'indie', 'folk', 'rap', 'soundtrack'];
-
-  const metricColors: { [key: string]: string } = {
-    'explicitPct': '#e15759',
-    'avgDuration': '#4e79a7',
-    'avgPopularity': '#59a14f'
-  };
-
-  const metricLabels: { [key: string]: string } = {
-    'explicitPct': 'Explicit %',
-    'avgDuration': 'Avg Duration (min)',
-    'avgPopularity': 'Avg Popularity'
-  };
 
   function parseGenres(genreString: string): string[] {
     if (!genreString || genreString === 'NaN' || genreString === '') return [];
@@ -50,9 +29,85 @@
 
   function categorizeGenre(genres: string[]): string | null {
     if (!genres || genres.length === 0) return null;
+
     for (let genre of genres) {
-      if (topGenres.includes(genre)) return genre;
+      const genreLower = genre.toLowerCase();
+
+      // Pop and variants (check first)
+      if (genreLower.includes('pop') && !genreLower.includes('k-pop') && !genreLower.includes('c-pop')) {
+        return 'pop';
+      }
+
+      // Country
+      if (genreLower.includes('country')) {
+        return 'country';
+      }
+
+      // Hip hop and all rap variants
+      if (genreLower.includes('hip hop') || genreLower.includes('drill') || genreLower.includes('grime') || genreLower.includes('trap')) {
+        return 'hip hop';
+      }
+      if (genreLower.includes('rap')) {
+        return 'hip hop';
+      }
+
+      // Latin music
+      if (genreLower.includes('latin') || genreLower.includes('reggaeton') ||
+          genreLower.includes('urbano') || genreLower.includes('corrido') ||
+          genreLower.includes('mexicana') || genreLower.includes('sierreño')) {
+        return 'latin';
+      }
+
+      // R&B
+      if (genreLower.includes('r&b') || genreLower.includes('rnb')) {
+        return 'r&b';
+      }
+
+      // Rock and variants
+      if (genreLower.includes('rock') || genreLower.includes('metal') ||
+          genreLower.includes('grunge') || genreLower.includes('punk')) {
+        return 'rock';
+      }
+
+      // EDM and electronic
+      if (genreLower.includes('edm') || genreLower.includes('electronic') ||
+          genreLower.includes('house') || genreLower.includes('techno') ||
+          genreLower.includes('bass') || genreLower.includes('synthwave')) {
+        return 'edm';
+      }
+
+      // Soundtrack
+      if (genreLower.includes('soundtrack') || genreLower.includes('score')) {
+        return 'soundtrack';
+      }
+
+      // Classical/orchestral
+      if (genreLower.includes('classical') || genreLower.includes('medieval') ||
+          genreLower.includes('neoclassical') || genreLower.includes('orchestral')) {
+        return 'classical';
+      }
+
+      // Anime/otaku
+      if (genreLower.includes('anime') || genreLower.includes('nightcore')) {
+        return 'anime';
+      }
+
+      // Indie/Alternative
+      if (genreLower.includes('indie') || genreLower.includes('alternative')) {
+        return 'indie';
+      }
+
+      // Folk/Celtic
+      if (genreLower.includes('folk') || genreLower.includes('celtic')) {
+        return 'folk';
+      }
+
+      // K-pop
+      if (genreLower.includes('k-pop') || genreLower.includes('c-pop')) {
+        return 'k-pop';
+      }
     }
+
     return null;
   }
 
@@ -76,12 +131,15 @@
     // Calculate genre statistics
     const genreMap = d3.rollup(
       dataWithGenres,
-      v => ({
-        explicitPct: (d3.sum(v, d => d.explicit ? 1 : 0) / v.length) * 100,
-        avgDuration: d3.mean(v, d => d.track_duration_min) || 0,
-        avgPopularity: d3.mean(v, d => d.track_popularity) || 0,
-        trackCount: v.length
-      }),
+      v => {
+        const explicitCount = d3.sum(v, d => d.explicit ? 1 : 0);
+        const total = v.length;
+        return {
+          explicit: (explicitCount / total) * 100,
+          clean: ((total - explicitCount) / total) * 100,
+          trackCount: total
+        };
+      },
       d => d.genre
     );
 
@@ -91,13 +149,13 @@
       ...stats
     })).sort((a, b) => b.trackCount - a.trackCount);
 
-    // Take top genres
+    // Take top 10 genres
     const topGenreStats = genreStats.slice(0, 10);
 
     // Set up dimensions
-    const margin = { top: 50, right: 30, bottom: 100, left: 70 };
-    const width = 600 - margin.left - margin.right;
-    const height = 500 - margin.top - margin.bottom;
+    const margin = { top: 20, right: 120, bottom: 100, left: 70 };
+    const width = 1100 - margin.left - margin.right;
+    const height = 450 - margin.top - margin.bottom;
 
     // Create SVG
     const svg = d3.select(chartContainer)
@@ -107,83 +165,58 @@
       .append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
-    // Prepare data for grouped bars
-    const metrics = ['explicitPct', 'avgDuration', 'avgPopularity'];
-    const barData: BarData[] = [];
-
-    topGenreStats.forEach(genre => {
-      metrics.forEach(metric => {
-        barData.push({
-          genre: genre.genre,
-          metric: metric,
-          value: genre[metric as keyof Omit<GenreStats, 'genre' | 'trackCount'>]
-        });
-      });
-    });
-
     // Create scales
-    const x0 = d3.scaleBand()
+    const xScale = d3.scaleBand()
       .domain(topGenreStats.map(d => d.genre))
       .range([0, width])
-      .padding(0.2);
-
-    const x1 = d3.scaleBand()
-      .domain(metrics)
-      .range([0, x0.bandwidth()])
-      .padding(0.1);
-
-    // Normalize values for better comparison
-    // Explicit: 0-100%, Duration: scale to 0-100, Popularity: 0-100
-    const maxDuration = d3.max(topGenreStats, d => d.avgDuration) || 1;
+      .padding(0.3);
 
     const yScale = d3.scaleLinear()
       .domain([0, 100])
       .range([height, 0]);
 
-    // Function to normalize values for display
-    function normalizeValue(metric: string, value: number): number {
-      if (metric === 'explicitPct' || metric === 'avgPopularity') {
-        return value;
-      } else if (metric === 'avgDuration') {
-        return (value / maxDuration) * 100;
-      }
-      return value;
-    }
+    // Stack keys
+    const keys = ['clean', 'explicit'];
+    const stack = d3.stack<GenreStats>()
+      .keys(keys)
+      .order(d3.stackOrderNone);
 
-    // Add bars
-    const genreGroups = svg.selectAll('.genre-group')
-      .data(topGenreStats)
+    const series = stack(topGenreStats);
+
+    // Colors
+    const colors = {
+      'clean': '#59a14f',  // Green for clean
+      'explicit': '#e15759' // Red for explicit
+    };
+
+    // Add stacked bars
+    svg.selectAll('.genre-group')
+      .data(series)
       .join('g')
       .attr('class', 'genre-group')
-      .attr('transform', d => `translate(${x0(d.genre)},0)`);
-
-    genreGroups.selectAll('.bar')
-      .data(d => metrics.map(metric => ({
-        genre: d.genre,
-        metric: metric,
-        value: d[metric as keyof Omit<GenreStats, 'genre' | 'trackCount'>],
-        normalizedValue: normalizeValue(metric, d[metric as keyof Omit<GenreStats, 'genre' | 'trackCount'>])
-      })))
+      .attr('fill', d => colors[d.key as keyof typeof colors])
+      .selectAll('rect')
+      .data(d => d)
       .join('rect')
-      .attr('class', 'bar')
-      .attr('x', d => x1(d.metric) || 0)
-      .attr('y', d => yScale(d.normalizedValue))
-      .attr('width', x1.bandwidth())
-      .attr('height', d => height - yScale(d.normalizedValue))
-      .attr('fill', d => metricColors[d.metric])
+      .attr('x', d => xScale(d.data.genre) || 0)
+      .attr('y', d => yScale(d[1]))
+      .attr('width', xScale.bandwidth())
+      .attr('height', d => yScale(d[0]) - yScale(d[1]))
       .attr('opacity', 0.85)
       .on('mouseover', function(event, d) {
         d3.select(this).attr('opacity', 1);
 
+        // Get the parent group to find which key this is
+        const parent = d3.select(this.parentNode as Element);
+        const key = parent.datum() as d3.Series<GenreStats, string>;
+        const value = d[1] - d[0];
+
         // Create tooltip
         const tooltip = svg.append('g')
           .attr('class', 'tooltip')
-          .attr('transform', `translate(${(x0(d.genre) || 0) + (x1(d.metric) || 0) + x1.bandwidth() / 2},${yScale(d.normalizedValue) - 10})`);
+          .attr('transform', `translate(${(xScale(d.data.genre) || 0) + xScale.bandwidth() / 2},${yScale(d[1]) - 10})`);
 
-        const text = d.metric === 'avgDuration'
-          ? d.value.toFixed(2)
-          : d.value.toFixed(1);
-
+        const text = `${value.toFixed(1)}%`;
         const bbox = { width: 60, height: 25 };
 
         tooltip.append('rect')
@@ -209,7 +242,7 @@
       });
 
     // Add axes
-    const xAxis = d3.axisBottom(x0);
+    const xAxis = d3.axisBottom(xScale);
     const yAxis = d3.axisLeft(yScale).ticks(10);
 
     svg.append('g')
@@ -221,22 +254,13 @@
       .style('text-anchor', 'end')
       .attr('dx', '-0.5em')
       .attr('dy', '0.5em')
-      .style('font-size', '11px');
+      .style('font-size', '12px');
 
     svg.append('g')
       .attr('class', 'y-axis')
       .call(yAxis)
       .selectAll('text')
-      .style('font-size', '11px');
-
-    // Add chart title
-    svg.append('text')
-      .attr('x', width / 2)
-      .attr('y', -20)
-      .attr('text-anchor', 'middle')
-      .style('font-size', '16px')
-      .style('font-weight', 'bold')
-      .text('Genre Characteristics Comparison');
+      .style('font-size', '12px');
 
     // Add axis label
     svg.append('text')
@@ -244,40 +268,35 @@
       .attr('x', -height / 2)
       .attr('y', -50)
       .attr('text-anchor', 'middle')
-      .style('font-size', '12px')
-      .text('Normalized Value (0-100)');
+      .style('font-size', '14px')
+      .text('Percentage (%)');
 
     // Add legend
     const legend = svg.append('g')
       .attr('class', 'legend')
-      .attr('transform', `translate(${width - 180}, -30)`);
+      .attr('transform', `translate(${width + 20}, ${height / 2 - 30})`);
 
-    metrics.forEach((metric, i) => {
+    const legendData = [
+      { key: 'explicit', label: 'Explicit', color: colors.explicit },
+      { key: 'clean', label: 'Clean', color: colors.clean }
+    ];
+
+    legendData.forEach((item, i) => {
       const legendRow = legend.append('g')
-        .attr('transform', `translate(${i * 65}, 0)`);
+        .attr('transform', `translate(0, ${i * 25})`);
 
       legendRow.append('rect')
-        .attr('width', 12)
-        .attr('height', 12)
-        .attr('fill', metricColors[metric])
+        .attr('width', 18)
+        .attr('height', 18)
+        .attr('fill', item.color)
         .attr('opacity', 0.85);
 
       legendRow.append('text')
-        .attr('x', 16)
-        .attr('y', 10)
-        .style('font-size', '10px')
-        .text(metricLabels[metric]);
+        .attr('x', 25)
+        .attr('y', 13)
+        .style('font-size', '13px')
+        .text(item.label);
     });
-
-    // Add note about normalization
-    svg.append('text')
-      .attr('x', width / 2)
-      .attr('y', height + margin.bottom - 10)
-      .attr('text-anchor', 'middle')
-      .style('font-size', '9px')
-      .style('font-style', 'italic')
-      .style('fill', '#666')
-      .text('Note: Duration is normalized to 0-100 scale for comparison');
   });
 </script>
 
@@ -298,10 +317,6 @@
   .chart-container {
     width: 100%;
     max-width: 100%;
-  }
-
-  :global(.bar) {
-    cursor: pointer;
   }
 
   :global(.x-axis path),
