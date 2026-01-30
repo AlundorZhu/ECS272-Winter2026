@@ -219,25 +219,6 @@ This dashboard will feature three complementary visualizations that explore diff
   - Which genres achieve higher popularity on average?
   - How do genre stereotypes hold up to data?
 
----
-
-### **Layout Rationale**
-
-**Grid structure**:
-```
-┌─────────────────────────────────────────┐
-│                                         │
-│    Stacked Area Chart (Full Width)     │
-│        [Temporal Evolution]             │
-│                                         │
-├──────────────────────┬──────────────────┤
-│                      │                  │
-│   Hexbin Density     │  Grouped Bar     │
-│  [Fame vs Success]   │ [Genre Compare]  │
-│                      │                  │
-└──────────────────────┴──────────────────┘
-```
-
 **Why this layout works**:
 1. **Hierarchical importance**: Area chart gets prominence (top, full-width)
 2. **Visual flow**: Temporal → detailed analysis (top-down)
